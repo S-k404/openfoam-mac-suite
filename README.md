@@ -1,12 +1,32 @@
+<!-- datasheet:banner -->
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/banner-dark.svg">
+    <img src=".github/assets/banner-light.svg" alt="OpenFOAM Mac Suite: A turnkey OpenFOAM v2512 CFD environment for Apple Silicon and Intel Macs, with live dashboards and aero tooling." width="100%">
+  </picture>
+</p>
+<!-- /datasheet:banner -->
+
 # OpenFOAM CFD & Aerodynamics Suite (macOS Apple Silicon & Intel)
 
 A fully integrated, high-performance **OpenCFD OpenFOAM v2512** environment running natively on macOS (Apple Silicon `arm64` and Intel `x86_64`) via Docker, paired with **native macOS ParaView**, **real-time live convergence monitoring**, and a dedicated **Aerodynamics Simulation Toolkit**.
 
 ---
 
+<!-- datasheet:figure -->
+## At a glance
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/diagram-dark.svg">
+    <img src=".github/assets/diagram-light.svg" alt="Block diagram: case to solver to live view" width="100%">
+  </picture>
+</p>
+<!-- /datasheet:figure -->
+
 ## 🚀 Quick Start & CLI Tools
 
-All tools are configured in [`bin/`](file://~/Documents/Docker/OpenFOAM/bin) and added to your `PATH` via [`install_mac.sh`](file://~/Documents/Docker/OpenFOAM/install_mac.sh):
+All tools are configured in [`bin/`](bin) and added to your `PATH` via [`install_mac.sh`](install_mac.sh):
 
 | Command | Purpose |
 | :--- | :--- |
@@ -73,7 +93,7 @@ Render publication-quality velocity magnitude and pressure field snapshots:
 ```bash
 foam-aero render
 ```
-Images are rendered to [`renders_airfoil/`](file://~/Documents/Docker/OpenFOAM/renders_airfoil).
+Images are rendered to `renders_airfoil/`.
 
 ---
 
@@ -133,10 +153,10 @@ Tests executed:
 
 | Case | Solver | Physics & Application |
 | :--- | :--- | :--- |
-| [`cases/airFoil2D`](file://~/Documents/Docker/OpenFOAM/cases/airFoil2D) | `simpleFoam` | External Aerodynamics: NACA 0012 airfoil ($C_l, C_d, C_m, y^+$, residuals) |
-| [`cases/damBreak`](file://~/Documents/Docker/OpenFOAM/cases/damBreak) | `interFoam` | Multiphase Volume-of-Fluid (VOF) collapsing liquid column & obstacle splash |
-| [`cases/pitzDaily`](file://~/Documents/Docker/OpenFOAM/cases/pitzDaily) | `pimpleFoam` | Transient Turbulent vortex shedding over backward-facing step |
-| [`cases/cavity`](file://~/Documents/Docker/OpenFOAM/cases/cavity) | `icoFoam` | Classic 2D Lid-Driven Cavity laminar benchmark |
+| [`cases/airFoil2D`](cases/airFoil2D) | `simpleFoam` | External Aerodynamics: NACA 0012 airfoil ($C_l, C_d, C_m, y^+$, residuals) |
+| [`cases/damBreak`](cases/damBreak) | `interFoam` | Multiphase Volume-of-Fluid (VOF) collapsing liquid column & obstacle splash |
+| [`cases/pitzDaily`](cases/pitzDaily) | `pimpleFoam` | Transient Turbulent vortex shedding over backward-facing step |
+| [`cases/cavity`](cases/cavity) | `icoFoam` | Classic 2D Lid-Driven Cavity laminar benchmark |
 
 To run any case:
 ```bash
