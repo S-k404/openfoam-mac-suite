@@ -2,7 +2,7 @@ import os
 import sys
 from paraview.simple import *
 
-foam_file = "~/Documents/Docker/OpenFOAM/cases/airFoil2D/airFoil2D.foam"
+foam_file = os.path.expanduser("~/Documents/Docker/OpenFOAM/cases/airFoil2D/airFoil2D.foam")
 if not os.path.exists(foam_file):
     with open(foam_file, "w") as f:
         pass
@@ -36,7 +36,7 @@ renderView.CameraViewUp = [0, 1, 0]
 renderView.CameraParallelProjection = 1
 renderView.CameraParallelScale = 25.0
 
-output_dir = "~/Documents/Docker/OpenFOAM/renders_airfoil"
+output_dir = os.path.expanduser("~/Documents/Docker/OpenFOAM/renders_airfoil")
 os.makedirs(output_dir, exist_ok=True)
 
 # Render Velocity Field
