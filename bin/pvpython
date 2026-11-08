@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# pvpython - macOS ParaView Python Wrapper
+# ==============================================================================
+PVPYTHON_BIN="/Applications/ParaView-6.1.1.app/Contents/bin/pvpython"
+if [ ! -x "$PVPYTHON_BIN" ]; then
+    PVPYTHON_BIN="/Applications/ParaView.app/Contents/bin/pvpython"
+fi
+
+if [ ! -x "$PVPYTHON_BIN" ]; then
+    echo "Error: pvpython not found in /Applications/ParaView*.app" >&2
+    exit 1
+fi
+
+exec "$PVPYTHON_BIN" "$@"

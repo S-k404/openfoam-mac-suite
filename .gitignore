@@ -1,0 +1,13 @@
+.DS_Store
+__pycache__/
+*.pyc
+*.log
+log.*
+frames_damBreak/*.png
+renders_airfoil/*.png
+*.mp4
+*.foam
+cases/**/[1-9]*
+cases/**/0.*
+!cases/**/0/
+!cases/**/0.orig/

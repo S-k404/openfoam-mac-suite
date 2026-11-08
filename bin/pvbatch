@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# pvbatch - macOS ParaView Batch MPI Wrapper
+# ==============================================================================
+PVBATCH_BIN="/Applications/ParaView-6.1.1.app/Contents/bin/pvbatch"
+if [ ! -x "$PVBATCH_BIN" ]; then
+    PVBATCH_BIN="/Applications/ParaView.app/Contents/bin/pvbatch"
+fi
+
+if [ ! -x "$PVBATCH_BIN" ]; then
+    echo "Error: pvbatch not found in /Applications/ParaView*.app" >&2
+    exit 1
+fi
+
+exec "$PVBATCH_BIN" "$@"

@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# Native macOS paraFoam Wrapper for OpenFOAM Docker Workflows
+# Bridges Docker-simulated OpenFOAM cases with hardware-accelerated macOS ParaView
+# ==============================================================================
+
+set -eo pipefail
+
+USE_STATE=false
+TARGET="."
+
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --state|-s)
+            USE_STATE=true
+            shift
+            ;;
+        *)
+            TARGET="$1"
+            shift
+            ;;
+    esac
+done
+
+if [ -f "$TARGET" ]; then
+    TARGET="$(dirname "$TARGET")"
+fi
+
+CASE_DIR="$(cd "$TARGET" && pwd)"
+CASE_NAME="$(basename "$CASE_DIR")"
+FOAM_FILE="${CASE_DIR}/${CASE_NAME}.foam"
+STATE_FILE="${CASE_DIR}/${CASE_NAME}.pvsm"
+
+# Ensure .foam file exists
+if [ ! -f "$FOAM_FILE" ]; then
+    touch "$FOAM_FILE"
+    echo "✓ Created OpenFOAM stub: ${FOAM_FILE}"
+fi
+
+PARAVIEW_BIN=""
+if [ -x "/opt/homebrew/bin/paraview" ]; then
+    PARAVIEW_BIN="/opt/homebrew/bin/paraview"
+elif [ -x "/Applications/ParaView-6.1.1.app/Contents/MacOS/paraview" ]; then
+    PARAVIEW_BIN="/Applications/ParaView-6.1.1.app/Contents/MacOS/paraview"
+elif [ -d "/Applications/ParaView.app" ]; then
+    PARAVIEW_BIN="/Applications/ParaView.app/Contents/MacOS/paraview"
+elif command -v paraview >/dev/null 2>&1; then
+    PARAVIEW_BIN="$(command -v paraview)"
+fi
+
+if [ -z "$PARAVIEW_BIN" ]; then
+    echo "Error: ParaView was not found on your Mac." >&2
+    echo "Install via Homebrew: brew install --cask paraview" >&2
+    exit 1
+fi
+
+if [ "$USE_STATE" = true ] && [ -f "$STATE_FILE" ]; then
+    echo "🚀 Loading pre-configured ParaView State (${CASE_NAME}.pvsm)..."
+    "$PARAVIEW_BIN" --state="$STATE_FILE" >/dev/null 2>&1 &
+else
+    echo "🚀 Opening ${CASE_NAME} in macOS ParaView (Metal/GPU accelerated)..."
+    "$PARAVIEW_BIN" "$FOAM_FILE" >/dev/null 2>&1 &
+fi
+
+echo "ParaView process launched."

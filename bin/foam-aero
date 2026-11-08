@@ -1,0 +1,244 @@
+#!/usr/bin/env python3
+"""
+foam-aero: Comprehensive Aerodynamics Toolkit for OpenFOAM on macOS
+Handles:
+  - Angle of Attack (AoA) adjustment & vector recalculation
+  - Lift (Cl) and Drag (Cd) force coefficient extraction & polar curve sweeps
+  - High-resolution flow field rendering with pvpython
+"""
+
+import sys
+import os
+import math
+import argparse
+import subprocess
+import glob
+import re
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
+DEFAULT_CASE = os.path.join(PROJECT_ROOT, "cases", "airFoil2D")
+
+def format_color(text, code):
+    return f"\033[{code}m{text}\033[0m"
+
+def info(msg):
+    print(format_color(f"[*] {msg}", "36"))
+
+def success(msg):
+    print(format_color(f"[✓] {msg}", "32"))
+
+def warn(msg):
+    print(format_color(f"[!] {msg}", "33"))
+
+def error(msg):
+    print(format_color(f"[✗] {msg}", "31"), file=sys.stderr)
+
+# ------------------------------------------------------------------------------
+# 1. Angle of Attack (AoA) Setter
+# ------------------------------------------------------------------------------
+def set_aoa(case_dir, aoa_deg, u_inf=26.0):
+    case_dir = os.path.abspath(case_dir)
+    rad = math.radians(aoa_deg)
+    ux = u_inf * math.cos(rad)
+    uy = u_inf * math.sin(rad)
+    
+    lift_x = -math.sin(rad)
+    lift_y = math.cos(rad)
+    drag_x = math.cos(rad)
+    drag_y = math.sin(rad)
+    
+    info(f"Setting Angle of Attack = {aoa_deg:.2f}° (U_inf = {u_inf:.1f} m/s)")
+    info(f"Velocity Vector: Ux = {ux:.4f} m/s, Uy = {uy:.4f} m/s")
+    info(f"Lift Direction: ({lift_x:.6f} {lift_y:.6f} 0)")
+    info(f"Drag Direction: ({drag_x:.6f} {drag_y:.6f} 0)")
+
+    # Update 0.orig/U and 0/U
+    u_targets = [os.path.join(case_dir, "0.orig", "U"), os.path.join(case_dir, "0", "U")]
+    for u_path in u_targets:
+        if os.path.exists(u_path):
+            with open(u_path, "r") as f:
+                content = f.read()
+            # Replace internalField
+            new_content = re.sub(
+                r'internalField\s+uniform\s+\([^)]+\);',
+                f'internalField   uniform ({ux:.4f} {uy:.4f} 0);',
+                content
+            )
+            with open(u_path, "w") as f:
+                f.write(new_content)
+            success(f"Updated velocity field in {os.path.relpath(u_path, PROJECT_ROOT)}")
+
+    # Update system/controlDict
+    ctrl_path = os.path.join(case_dir, "system", "controlDict")
+    if os.path.exists(ctrl_path):
+        with open(ctrl_path, "r") as f:
+            content = f.read()
+        
+        content = re.sub(
+            r'liftDir\s+\([^)]+\);',
+            f'liftDir         ({lift_x:.6f} {lift_y:.6f} 0);',
+            content
+        )
+        content = re.sub(
+            r'dragDir\s+\([^)]+\);',
+            f'dragDir         ({drag_x:.6f} {drag_y:.6f} 0);',
+            content
+        )
+        content = re.sub(
+            r'magUInf\s+[\d\.]+;',
+            f'magUInf         {u_inf:.2f};',
+            content
+        )
+        with open(ctrl_path, "w") as f:
+            f.write(content)
+        success(f"Updated forceCoeffs in {os.path.relpath(ctrl_path, PROJECT_ROOT)}")
+
+# ------------------------------------------------------------------------------
+# 2. Extract Aerodynamic Forces
+# ------------------------------------------------------------------------------
+def get_forces(case_dir):
+    case_dir = os.path.abspath(case_dir)
+    # Search for coefficient.dat
+    candidates = glob.glob(os.path.join(case_dir, "postProcessing", "*force*", "*", "coefficient.dat"))
+    if not candidates:
+        warn("No coefficient.dat found in postProcessing. Has the case run with forceCoeffs enabled?")
+        return None
+
+    coeff_file = sorted(candidates)[-1]
+    with open(coeff_file, "r") as f:
+        lines = [line.strip() for line in f if line.strip() and not line.startswith("#")]
+
+    if not lines:
+        warn(f"Empty data in {coeff_file}")
+        return None
+
+    last_line = lines[-1].split()
+    # Format: Time, Cd, Cd(f), Cd(r), Cl, Cl(f), Cl(r), CmPitch, CmRoll, CmYaw, Cs, Cs(f), Cs(r)
+    try:
+        time_step = last_line[0]
+        cd = float(last_line[1])
+        cd_front = float(last_line[2])
+        cd_rear = float(last_line[3])
+        cl = float(last_line[4])
+        cl_front = float(last_line[5])
+        cl_rear = float(last_line[6])
+        cm = float(last_line[7])
+        ld_ratio = cl / cd if abs(cd) > 1e-8 else 0.0
+
+        print("\n" + "=" * 60)
+        print(f"  Aerodynamic Coefficients Summary: {os.path.basename(case_dir)}")
+        print("=" * 60)
+        print(f"  Converged Iteration / Time:   {time_step}")
+        print(f"  Lift Coefficient (Cl):        {format_color(f'{cl:+.4f}', '32;1')}")
+        print(f"  Drag Coefficient (Cd):        {format_color(f'{cd:+.4f}', '33;1')}")
+        print(f"    - Pressure Drag (Cd_p):     {cd_front:+.4f}")
+        print(f"    - Friction Drag (Cd_f):     {cd_rear:+.4f}")
+        print(f"  Pitching Moment (Cm_c/4):     {cm:+.4f}")
+        print(f"  Lift-to-Drag Ratio (L/D):     {format_color(f'{ld_ratio:+.2f}', '36;1')}")
+        print("=" * 60 + "\n")
+        return {"time": time_step, "cl": cl, "cd": cd, "cm": cm, "ld": ld_ratio}
+    except Exception as e:
+        error(f"Error parsing {coeff_file}: {e}")
+        return None
+
+# ------------------------------------------------------------------------------
+# 3. Polar Curve Sweep
+# ------------------------------------------------------------------------------
+def run_polar(case_dir, angles):
+    case_dir = os.path.abspath(case_dir)
+    results = []
+    
+    print("\n" + "=" * 65)
+    print("  Starting Aerodynamic Polar Sweep")
+    print(f"  Case: {case_dir}")
+    print(f"  Angles: {angles}")
+    print("=" * 65)
+
+    for aoa in angles:
+        info(f"--- Running Alpha = {aoa}° ---")
+        set_aoa(case_dir, aoa)
+        
+        # Clean and run
+        clean_cmd = [f"{PROJECT_ROOT}/openfoam.sh", "-c", f"cd /home/openfoam/cases/{os.path.basename(case_dir)} && ./Allclean && ./Allrun"]
+        ret = subprocess.run(clean_cmd)
+        if ret.returncode != 0:
+            error(f"Simulation failed at AoA = {aoa}°")
+            continue
+        
+        data = get_forces(case_dir)
+        if data:
+            results.append({"aoa": aoa, **data})
+
+    # Summary Table
+    print("\n" + "=" * 65)
+    print(f"{'AoA (deg)':<12}{'Cl':<12}{'Cd':<12}{'L/D':<12}{'Cm':<12}")
+    print("-" * 65)
+    for r in results:
+        print(f"{r['aoa']:<12.1f}{r['cl']:<12.4f}{r['cd']:<12.4f}{r['ld']:<12.2f}{r['cm']:<12.4f}")
+    print("=" * 65)
+
+    # Save to CSV
+    csv_path = os.path.join(case_dir, "aerodynamic_polar.csv")
+    with open(csv_path, "w") as f:
+        f.write("aoa,cl,cd,ld,cm\n")
+        for r in results:
+            f.write(f"{r['aoa']},{r['cl']},{r['cd']},{r['ld']},{r['cm']}\n")
+    success(f"Polar dataset saved to {csv_path}")
+
+# ------------------------------------------------------------------------------
+# 4. Render Flow Field via pvpython
+# ------------------------------------------------------------------------------
+def render_flow(case_dir):
+    render_script = os.path.join(PROJECT_ROOT, "render_airfoil.py")
+    pvpython = os.path.join(PROJECT_ROOT, "bin", "pvpython")
+    
+    if not os.path.exists(pvpython):
+        error("pvpython wrapper not found in bin/")
+        return
+
+    info(f"Executing pvpython rendering on {case_dir}...")
+    subprocess.run([pvpython, render_script])
+
+# ------------------------------------------------------------------------------
+# Main CLI
+# ------------------------------------------------------------------------------
+def main():
+    parser = argparse.ArgumentParser(description="foam-aero: OpenFOAM Aerodynamics Suite")
+    subparsers = parser.add_subparsers(dest="subcommand", help="Aerodynamic subcommands")
+
+    # set-aoa
+    p_aoa = subparsers.add_parser("set-aoa", help="Set angle of attack (AoA) and recalculate vectors")
+    p_aoa.add_argument("angle", type=float, help="Angle of attack in degrees")
+    p_aoa.add_argument("--speed", "-u", type=float, default=26.0, help="Freestream velocity magnitude (m/s)")
+    p_aoa.add_argument("--case", "-c", default=DEFAULT_CASE, help="Target case directory")
+
+    # forces
+    p_forces = subparsers.add_parser("forces", help="Print converged lift, drag, and moment coefficients")
+    p_forces.add_argument("--case", "-c", default=DEFAULT_CASE, help="Target case directory")
+
+    # polar
+    p_polar = subparsers.add_parser("polar", help="Run automated aerodynamic polar sweep")
+    p_polar.add_argument("--angles", "-a", default="0,2,4,6,8,10,12", help="Comma-separated angles of attack")
+    p_polar.add_argument("--case", "-c", default=DEFAULT_CASE, help="Target case directory")
+
+    # render
+    p_render = subparsers.add_parser("render", help="Render pressure & velocity fields using pvpython")
+    p_render.add_argument("--case", "-c", default=DEFAULT_CASE, help="Target case directory")
+
+    args = parser.parse_args()
+
+    if args.subcommand == "set-aoa":
+        set_aoa(args.case, args.angle, args.speed)
+    elif args.subcommand == "forces":
+        get_forces(args.case)
+    elif args.subcommand == "polar":
+        angles = [float(x.strip()) for x in args.angles.split(",")]
+        run_polar(args.case, angles)
+    elif args.subcommand == "render":
+        render_flow(args.case)
+    else:
+        parser.print_help()
+
+if __name__ == "__main__":
+    main()

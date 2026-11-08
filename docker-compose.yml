@@ -1,0 +1,11 @@
+services:
+  openfoam:
+    image: opencfd/openfoam-default:latest
+    container_name: openfoam
+    user: "${UID:-501}:${GID:-20}"
+    volumes:
+      - .:/home/openfoam
+    working_dir: /home/openfoam
+    stdin_open: true
+    tty: true
+    command: []
