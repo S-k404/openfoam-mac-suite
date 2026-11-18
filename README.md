@@ -23,11 +23,11 @@
 
 | Characteristic | Detail |
 | --- | --- |
-| **Engine** | OpenCFD OpenFOAM v2512 (`opencfd/openfoam-default:latest`) running on macOS (`arm64` and `x86_64`) via Docker (`--shm-size=4g --ipc=host`) |
+| **Engine** | OpenCFD OpenFOAM v2512 (`opencfd/openfoam-default:latest`) on macOS (`arm64` and `x86_64`) via Docker (`--shm-size=4g --ipc=host`) |
 | **CLI tools** | `openfoam` (`./openfoam.sh`), `foam-aero`, `foam-live` (`http://localhost:8080`), `foam-test`, `paraFoam`, `pvpython`, `pvbatch` |
-| **Visualization** | Native macOS `ParaView.app` / `ParaView-*.app` (Metal GPU accelerated) plus a live browser dashboard for residuals and force coefficients |
+| **Visualization** | Native macOS `ParaView*.app` (Metal GPU accelerated) plus a live browser dashboard for residuals and aerodynamic forces |
 | **Included cases** | `cases/airFoil2D` (`simpleFoam`), `cases/damBreak` (`interFoam`), `cases/pitzDaily` (`pimpleFoam`), `cases/cavity` (`icoFoam`) |
-| **Verification** | `./bin/foam-test` runs a 7-stage check covering Docker, `blockMesh`, laminar, VOF, RANS airfoil, 8-core MPI scaling, and headless `pvpython` rendering |
+| **Verification** | `./bin/foam-test` runs a 7-stage check covering Docker, `blockMesh`, laminar, VOF, RANS airfoil, 8-core MPI scaling and headless `pvpython` |
 <!-- /datasheet:figure -->
 
 ## Quick start
@@ -164,3 +164,13 @@ openfoam ./Allrun
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+<!-- datasheet:footer -->
+---
+
+<p align="center">
+  <a href="https://github.com/S-k404/mc-server-manager">&larr; U19 mc-server-manager</a> &middot;
+  <a href="https://github.com/S-k404/S-k404">SK-404 index</a> &middot;
+  <a href="https://github.com/S-k404/card-wallet">U23 card-wallet &rarr;</a>
+</p>
+<!-- /datasheet:footer -->
