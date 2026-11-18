@@ -2,9 +2,18 @@
 # ==============================================================================
 # pvbatch - macOS ParaView Batch MPI Wrapper
 # ==============================================================================
-PVBATCH_BIN="/Applications/ParaView-6.1.1.app/Contents/bin/pvbatch"
-if [ ! -x "$PVBATCH_BIN" ]; then
+PVBATCH_BIN=""
+if [ -n "${PARAVIEW_APP:-}" ] && [ -x "${PARAVIEW_APP}/Contents/bin/pvbatch" ]; then
+    PVBATCH_BIN="${PARAVIEW_APP}/Contents/bin/pvbatch"
+elif [ -x "/Applications/ParaView.app/Contents/bin/pvbatch" ]; then
     PVBATCH_BIN="/Applications/ParaView.app/Contents/bin/pvbatch"
+else
+    for app in $(ls -1dr /Applications/ParaView*.app 2>/dev/null); do
+        if [ -x "$app/Contents/bin/pvbatch" ]; then
+            PVBATCH_BIN="$app/Contents/bin/pvbatch"
+            break
+        fi
+    done
 fi
 
 if [ ! -x "$PVBATCH_BIN" ]; then

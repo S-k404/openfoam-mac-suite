@@ -2,7 +2,8 @@ import os
 import sys
 from paraview.simple import *
 
-foam_file = os.path.expanduser("~/Documents/Docker/OpenFOAM/cases/damBreak/damBreak.foam")
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+foam_file = os.path.join(ROOT_DIR, "cases", "damBreak", "damBreak.foam")
 reader = OpenFOAMReader(registrationName='damBreak.foam', FileName=foam_file)
 reader.MeshRegions = ['internalMesh']
 reader.CellArrays = ['alpha.water', 'U', 'p_rgh']
@@ -26,7 +27,7 @@ renderView.CameraViewUp = [0, 1, 0]
 renderView.CameraParallelProjection = 1
 renderView.CameraParallelScale = 0.32
 
-output_dir = os.path.expanduser("~/Documents/Docker/OpenFOAM/frames_damBreak")
+output_dir = os.path.join(ROOT_DIR, "frames_damBreak")
 os.makedirs(output_dir, exist_ok=True)
 
 animScene = GetAnimationScene()

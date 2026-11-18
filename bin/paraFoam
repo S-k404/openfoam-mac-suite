@@ -38,13 +38,21 @@ if [ ! -f "$FOAM_FILE" ]; then
 fi
 
 PARAVIEW_BIN=""
-if [ -x "/opt/homebrew/bin/paraview" ]; then
+if [ -n "${PARAVIEW_APP:-}" ] && [ -x "${PARAVIEW_APP}/Contents/MacOS/paraview" ]; then
+    PARAVIEW_BIN="${PARAVIEW_APP}/Contents/MacOS/paraview"
+elif [ -x "/opt/homebrew/bin/paraview" ]; then
     PARAVIEW_BIN="/opt/homebrew/bin/paraview"
-elif [ -x "/Applications/ParaView-6.1.1.app/Contents/MacOS/paraview" ]; then
-    PARAVIEW_BIN="/Applications/ParaView-6.1.1.app/Contents/MacOS/paraview"
-elif [ -d "/Applications/ParaView.app" ]; then
+elif [ -x "/Applications/ParaView.app/Contents/MacOS/paraview" ]; then
     PARAVIEW_BIN="/Applications/ParaView.app/Contents/MacOS/paraview"
-elif command -v paraview >/dev/null 2>&1; then
+else
+    for app in $(ls -1dr /Applications/ParaView*.app 2>/dev/null); do
+        if [ -x "$app/Contents/MacOS/paraview" ]; then
+            PARAVIEW_BIN="$app/Contents/MacOS/paraview"
+            break
+        fi
+    done
+fi
+if [ -z "$PARAVIEW_BIN" ] && command -v paraview >/dev/null 2>&1; then
     PARAVIEW_BIN="$(command -v paraview)"
 fi
 

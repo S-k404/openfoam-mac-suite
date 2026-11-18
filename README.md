@@ -7,11 +7,9 @@
 </p>
 <!-- /datasheet:banner -->
 
-# OpenFOAM CFD & Aerodynamics Suite (macOS Apple Silicon & Intel)
+# OpenFOAM Mac Suite
 
-A fully integrated, high-performance **OpenCFD OpenFOAM v2512** environment running natively on macOS (Apple Silicon `arm64` and Intel `x86_64`) via Docker, paired with **native macOS ParaView**, **real-time live convergence monitoring**, and a dedicated **Aerodynamics Simulation Toolkit**.
-
----
+**A turnkey OpenFOAM v2512 CFD environment for Apple Silicon and Intel Macs, pairing a Docker solver runtime with native macOS ParaView, live convergence monitoring, and an aerodynamics toolkit.**
 
 <!-- datasheet:figure -->
 ## At a glance
@@ -22,27 +20,33 @@ A fully integrated, high-performance **OpenCFD OpenFOAM v2512** environment runn
     <img src=".github/assets/diagram-light.svg" alt="Block diagram: case to solver to live view" width="100%">
   </picture>
 </p>
+
+| Characteristic | Detail |
+| --- | --- |
+| **Engine** | OpenCFD OpenFOAM v2512 (`opencfd/openfoam-default:latest`) running on macOS (`arm64` and `x86_64`) via Docker (`--shm-size=4g --ipc=host`) |
+| **CLI tools** | `openfoam` (`./openfoam.sh`), `foam-aero`, `foam-live` (`http://localhost:8080`), `foam-test`, `paraFoam`, `pvpython`, `pvbatch` |
+| **Visualization** | Native macOS `ParaView.app` / `ParaView-*.app` (Metal GPU accelerated) plus a live browser dashboard for residuals and force coefficients |
+| **Included cases** | `cases/airFoil2D` (`simpleFoam`), `cases/damBreak` (`interFoam`), `cases/pitzDaily` (`pimpleFoam`), `cases/cavity` (`icoFoam`) |
+| **Verification** | `./bin/foam-test` runs a 7-stage check covering Docker, `blockMesh`, laminar, VOF, RANS airfoil, 8-core MPI scaling, and headless `pvpython` rendering |
 <!-- /datasheet:figure -->
 
-## 🚀 Quick Start & CLI Tools
+## Quick start
 
-All tools are configured in [`bin/`](bin) and added to your `PATH` via [`install_mac.sh`](install_mac.sh):
+All tools live in [`bin/`](bin) and can be added to `PATH` with [`install_mac.sh`](install_mac.sh):
 
 | Command | Purpose |
 | :--- | :--- |
-| `openfoam` (or `./openfoam.sh`) | Open interactive OpenFOAM shell or run any OpenFOAM solver/utility |
-| `paraFoam [case]` | Automatically launch hardware-accelerated macOS ParaView on the case |
-| `foam-live [case]` | Launch real-time web convergence dashboard (`http://localhost:8080`) |
-| `foam-aero <cmd>` | Aerodynamics toolkit (AoA setter, polar sweep, lift/drag extraction, flow rendering) |
+| `openfoam` (or `./openfoam.sh`) | Open an interactive OpenFOAM shell or run any solver/utility in the container |
+| `paraFoam [case]` | Create the `.foam` stub and open the case in native macOS ParaView |
+| `foam-live [case]` | Launch the real-time web convergence dashboard (`http://localhost:8080`) |
+| `foam-aero <cmd>` | Aerodynamics toolkit (`set-aoa`, `forces`, `polar`, `render`) |
 | `foam-test` | Run the automated 7-step fluid simulation test suite |
-| `pvpython <script.py>` | Run macOS ParaView Python scripts for headless rendering & animation generation |
+| `pvpython <script.py>` | Run macOS ParaView Python scripts for headless rendering and animations |
 
----
+## Aerodynamic workflows
 
-## ✈️ Aerodynamic Uses & Workflows
-
-### 1. Angle of Attack (AoA) Adjustment
-Easily change the angle of attack $\alpha$ for the 2D NACA airfoil without manually calculating velocity vectors or lift/drag unit vectors:
+### 1. Angle of Attack (AoA) adjustment
+Set the angle of attack $\alpha$ for the 2D NACA airfoil without manually recalculating velocity components or lift/drag unit vectors:
 
 ```bash
 # Set Angle of Attack to 4.0 degrees with default 26.0 m/s freestream velocity
@@ -52,12 +56,12 @@ foam-aero set-aoa 4.0
 foam-aero set-aoa 12.0 --speed 50.0
 ```
 
-`foam-aero set-aoa` automatically updates:
+`foam-aero set-aoa` updates:
 - Velocity field $U = (U_\infty \cos\alpha, U_\infty \sin\alpha, 0)$ in `0.orig/U` and `0/U`.
-- Lift direction $(-\sin\alpha, \cos\alpha, 0)$ and Drag direction $(\cos\alpha, \sin\alpha, 0)$ in `system/controlDict`.
+- Lift direction $(-\sin\alpha, \cos\alpha, 0)$ and drag direction $(\cos\alpha, \sin\alpha, 0)$ in `system/controlDict`.
 
-### 2. Extract Converged Lift & Drag Coefficients
-View the converged aerodynamic forces, lift coefficient $C_l$, drag coefficient $C_d$, pressure drag vs viscous drag, pitching moment $C_m$, and lift-to-drag ratio $L/D$:
+### 2. Extract converged lift and drag coefficients
+Inspect converged aerodynamic forces, lift coefficient $C_l$, drag coefficient $C_d$ (pressure vs friction), pitching moment $C_m$, and lift-to-drag ratio $L/D$:
 
 ```bash
 foam-aero forces
@@ -78,88 +82,85 @@ Output:
 ============================================================
 ```
 
-### 3. Automated Aerodynamic Polar Sweep
-Run an automated polar curve sweep over multiple angles of attack:
+### 3. Automated aerodynamic polar sweep
+Run a polar sweep across multiple angles of attack:
 
 ```bash
 foam-aero polar --angles 0,2,4,6,8,10,12
 ```
 
-This cleans and runs each simulation point, collects $C_l, C_d, C_m$, and saves `cases/airFoil2D/aerodynamic_polar.csv`.
+Each point is cleaned and solved in turn, writing $C_l, C_d, C_m$ to `cases/airFoil2D/aerodynamic_polar.csv`.
 
-### 4. High-Resolution Flow Field Rendering
-Render publication-quality velocity magnitude and pressure field snapshots:
+### 4. High-resolution flow field rendering
+Render velocity magnitude and pressure field snapshots through headless `pvpython`:
 
 ```bash
 foam-aero render
 ```
-Images are rendered to `renders_airfoil/`.
+Images are written to `renders_airfoil/`.
 
----
+## Real-time simulation viewing
 
-## 📊 Real-Time Simulation Viewing
-
-### Option 1: Live Web Convergence Dashboard (`foam-live`)
-Launch the real-time browser dashboard:
-
+### Live web convergence dashboard (`foam-live`)
 ```bash
 foam-live
 ```
-Open **`http://localhost:8080`** in Safari or Chrome:
-- **Live Residuals Graph**: interactive logarithmic convergence plot for $p, U_x, U_y, \tilde{\nu}, k, \omega$.
-- **Live Aerodynamic Forces**: real-time Lift ($C_l$) and Drag ($C_d$) convergence curve.
-- **Live Flow Visualizer**: automatic display of rendered flow field slices.
-- **One-Click ParaView**: button to launch native macOS ParaView directly from the browser.
+Open **`http://localhost:8080`** in your browser:
+- **Live residuals graph:** logarithmic convergence plot for $p, U_x, U_y, \tilde{\nu}, k, \omega$.
+- **Live aerodynamic forces:** real-time lift ($C_l$) and drag ($C_d$) history.
+- **Live flow visualizer:** rendered flow field slices.
+- **One-click ParaView:** launch native macOS ParaView from the dashboard.
 
-### Option 2: Hardware-Accelerated macOS ParaView (`paraFoam`)
-To visualize 3D/2D flow fields, streamline ribbons, vectors, and pressure contours in real time:
-
+### Hardware-accelerated macOS ParaView (`paraFoam`)
 ```bash
-# Inside any case directory:
-cd cases/airFoil2D
-paraFoam
-
-# Or from anywhere:
 paraFoam cases/airFoil2D
 ```
+In ParaView, enable **Auto Apply** (`Edit -> Settings -> General -> Auto Apply`), open the `.foam` stub, and click **Reload Files** while the solver runs in Docker to step through newly written time directories.
 
-**Real-Time Viewing in ParaView:**
-1. In ParaView, check **Auto Apply** (in the toolbar or Edit → Settings → General → Auto Apply).
-2. Open the `.foam` file.
-3. While the simulation is running in Docker, click the **Reload Files** button or drag the time slider to view newly computed time steps!
-
----
-
-## 🧪 Fluid Simulation Test Suite
-
-Run the automated validation suite to test all CFD disciplines:
+## Fluid simulation test suite
 
 ```bash
-foam-test
+./bin/foam-test
 ```
 
-Tests executed:
-1. **Environment**: Docker daemon, CPU/RAM, and ARM64 Apple Silicon engine check.
-2. **Mesh Generation**: `blockMesh` on structured 3D grid.
-3. **Laminar Fluid Sim**: `icoFoam` on Lid-Driven Cavity benchmark.
-4. **Multiphase VOF Fluid Sim**: `interFoam` on Dam Break collapsing water column.
-5. **Aerodynamics RANS**: `simpleFoam` on NACA airfoil with lift & drag convergence.
-6. **Parallel MPI Scaling**: 8-core domain decomposition and multi-process solver.
-7. **ParaView Offscreen GPU Rendering**: `pvpython` headless render pipeline.
+Checks performed:
+1. **Environment:** Docker daemon, CPU/RAM, and ARM64/x86_64 image check.
+2. **Mesh generation:** `blockMesh` on a structured 3D grid.
+3. **Laminar flow:** `icoFoam` on the lid-driven cavity benchmark.
+4. **Multiphase VOF:** `interFoam` on the dam-break collapsing liquid column.
+5. **Aerodynamics RANS:** `simpleFoam` on the NACA 0012 airfoil with force convergence.
+6. **Parallel MPI scaling:** 8-core `decomposePar` and `mpirun` check.
+7. **ParaView offscreen rendering:** `pvpython` headless render pipeline.
 
----
-
-## 📁 Available Simulation Cases
+## Included simulation cases
 
 | Case | Solver | Physics & Application |
 | :--- | :--- | :--- |
-| [`cases/airFoil2D`](cases/airFoil2D) | `simpleFoam` | External Aerodynamics: NACA 0012 airfoil ($C_l, C_d, C_m, y^+$, residuals) |
-| [`cases/damBreak`](cases/damBreak) | `interFoam` | Multiphase Volume-of-Fluid (VOF) collapsing liquid column & obstacle splash |
-| [`cases/pitzDaily`](cases/pitzDaily) | `pimpleFoam` | Transient Turbulent vortex shedding over backward-facing step |
-| [`cases/cavity`](cases/cavity) | `icoFoam` | Classic 2D Lid-Driven Cavity laminar benchmark |
+| [`cases/airFoil2D`](cases/airFoil2D) | `simpleFoam` | External aerodynamics: NACA 0012 airfoil ($C_l, C_d, C_m, y^+$, residuals) |
+| [`cases/damBreak`](cases/damBreak) | `interFoam` | Multiphase Volume-of-Fluid (VOF) collapsing liquid column and obstacle splash |
+| [`cases/pitzDaily`](cases/pitzDaily) | `pimpleFoam` | Transient turbulent vortex shedding over a backward-facing step |
+| [`cases/cavity`](cases/cavity) | `icoFoam` | Classic 2D lid-driven cavity laminar benchmark |
 
-To run any case:
+Run any case with:
 ```bash
 cd cases/<case_name>
 openfoam ./Allrun
 ```
+
+## Absolute maximum ratings
+
+| Parameter | Limit |
+| --- | --- |
+| Container shared memory (`--shm-size`) | `4 GB` default (increase in `openfoam.sh` for larger unstructured MPI meshes) |
+| Host mount safety | Never mounts `$HOME` or `/`; external cases mount solely at `/home/openfoam/case` |
+| Live dashboard bind | `http://localhost:8080` (`foam-live`) |
+| Parallel MPI ranks in `foam-test` | Up to 8 ranks (`decomposePar` + OpenMPI `vader` shared-memory transport) |
+
+## Errata
+
+- **Docker Desktop required:** OpenFOAM solvers run inside the Linux container (`opencfd/openfoam-default:latest`); `openfoam.sh` attempts to auto-start Docker Desktop on macOS and waits up to 30 seconds.
+- **ParaView discovery:** `paraFoam`, `pvpython`, and `pvbatch` search `PARAVIEW_APP`, `/opt/homebrew/bin/paraview`, `/Applications/ParaView.app`, and `/Applications/ParaView*.app` (highest installed version first). Headless rendering (`foam-aero render` and test step 7) requires ParaView to be installed under `/Applications`.
+
+## License
+
+MIT. See [LICENSE](LICENSE).

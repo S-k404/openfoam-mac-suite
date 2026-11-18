@@ -71,13 +71,21 @@ launch_paraview() {
     fi
 
     local paraview_bin=""
-    if [ -x "/opt/homebrew/bin/paraview" ]; then
+    if [ -n "${PARAVIEW_APP:-}" ] && [ -x "${PARAVIEW_APP}/Contents/MacOS/paraview" ]; then
+        paraview_bin="${PARAVIEW_APP}/Contents/MacOS/paraview"
+    elif [ -x "/opt/homebrew/bin/paraview" ]; then
         paraview_bin="/opt/homebrew/bin/paraview"
-    elif [ -x "/Applications/ParaView-6.1.1.app/Contents/MacOS/paraview" ]; then
-        paraview_bin="/Applications/ParaView-6.1.1.app/Contents/MacOS/paraview"
-    elif [ -d "/Applications/ParaView.app" ]; then
+    elif [ -x "/Applications/ParaView.app/Contents/MacOS/paraview" ]; then
         paraview_bin="/Applications/ParaView.app/Contents/MacOS/paraview"
-    elif command -v paraview >/dev/null 2>&1; then
+    else
+        for app in $(ls -1dr /Applications/ParaView*.app 2>/dev/null); do
+            if [ -x "$app/Contents/MacOS/paraview" ]; then
+                paraview_bin="$app/Contents/MacOS/paraview"
+                break
+            fi
+        done
+    fi
+    if [ -z "$paraview_bin" ] && command -v paraview >/dev/null 2>&1; then
         paraview_bin="$(command -v paraview)"
     fi
 
@@ -113,14 +121,21 @@ run_doctor() {
         echo -e "OpenFOAM Image:     ${YELLOW}Missing locally (will be pulled on first run)${NC}"
     fi
 
-    if [ -x "/opt/homebrew/bin/paraview" ] || [ -d "/Applications/ParaView-6.1.1.app" ]; then
-        echo -e "Native ParaView:    ${GREEN}Installed (/opt/homebrew/bin/paraview)${NC}"
+    local pv_found="" pvp_found=""
+    for app in $(ls -1dr /Applications/ParaView*.app 2>/dev/null); do
+        [ -z "$pv_found" ] && [ -x "$app/Contents/MacOS/paraview" ] && pv_found="$app/Contents/MacOS/paraview"
+        [ -z "$pvp_found" ] && [ -x "$app/Contents/bin/pvpython" ] && pvp_found="$app/Contents/bin/pvpython"
+    done
+    [ -z "$pv_found" ] && [ -x "/opt/homebrew/bin/paraview" ] && pv_found="/opt/homebrew/bin/paraview"
+
+    if [ -n "$pv_found" ]; then
+        echo -e "Native ParaView:    ${GREEN}Installed (${pv_found})${NC}"
     else
         echo -e "Native ParaView:    ${YELLOW}Not found (brew install --cask paraview)${NC}"
     fi
 
-    if [ -x "/Applications/ParaView-6.1.1.app/Contents/bin/pvpython" ]; then
-        echo -e "ParaView pvpython:  ${GREEN}Available for automated batch/headless rendering${NC}"
+    if [ -n "$pvp_found" ]; then
+        echo -e "ParaView pvpython:  ${GREEN}Available (${pvp_found})${NC}"
     else
         echo -e "ParaView pvpython:  ${YELLOW}Not found${NC}"
     fi
