@@ -13,10 +13,12 @@ import socketserver
 import json
 import os
 import sys
+import shutil
 import glob
 import re
 import subprocess
 import urllib.parse
+import webbrowser
 from datetime import datetime
 
 PORT = 8080
@@ -191,8 +193,21 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
         if parsed.path == "/api/paraview":
             case_name = params.get("case", ["airFoil2D"])[0]
             case_dir = os.path.join(CASES_DIR, case_name)
-            parafoam_cmd = os.path.join(PROJECT_ROOT, "bin", "paraFoam")
-            subprocess.Popen([parafoam_cmd, case_dir])
+            if sys.platform.startswith("win"):
+                foam_file = os.path.join(case_dir, f"{case_name}.foam")
+                if os.path.isdir(case_dir) and not os.path.exists(foam_file):
+                    open(foam_file, "a", encoding="utf-8").close()
+                pv = _find_windows_paraview("paraview.exe")
+                if not pv:
+                    self.send_response(404)
+                    self.send_header("Content-Type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"success": False, "message": "ParaView executable not found on Windows PATH or Program Files"}).encode("utf-8"))
+                    return
+                subprocess.Popen([pv, foam_file])
+            else:
+                parafoam_cmd = os.path.join(PROJECT_ROOT, "bin", "paraFoam")
+                subprocess.Popen([parafoam_cmd, case_dir])
 
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
@@ -203,9 +218,19 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
         elif parsed.path == "/api/render":
             case_name = params.get("case", ["airFoil2D"])[0]
             if case_name == "airFoil2D":
-                pvpython = os.path.join(PROJECT_ROOT, "bin", "pvpython")
                 render_script = os.path.join(PROJECT_ROOT, "render_airfoil.py")
-                subprocess.Popen([pvpython, render_script])
+                if sys.platform.startswith("win"):
+                    pvp = _find_windows_paraview("pvpython.exe")
+                    if not pvp:
+                        self.send_response(404)
+                        self.send_header("Content-Type", "application/json")
+                        self.end_headers()
+                        self.wfile.write(json.dumps({"success": False, "message": "pvpython.exe not found on Windows"}).encode("utf-8"))
+                        return
+                    subprocess.Popen([pvp, render_script])
+                else:
+                    pvpython = os.path.join(PROJECT_ROOT, "bin", "pvpython")
+                    subprocess.Popen([pvpython, render_script])
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
@@ -477,6 +502,21 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 </html>
 """
 
+def _find_windows_paraview(exe_name: str = "paraview.exe") -> str | None:
+    """Locate ParaView / pvpython executables on Windows (PATH or standard Program Files install)."""
+    found = shutil.which(exe_name) or shutil.which(exe_name.removesuffix(".exe"))
+    if found:
+        return found
+    for root_var in ("ProgramFiles", "ProgramW6432", "LOCALAPPDATA"):
+        root = os.environ.get(root_var)
+        if not root:
+            continue
+        for match in sorted(glob.glob(os.path.join(root, "ParaView*", "bin", exe_name)), reverse=True):
+            if os.path.isfile(match):
+                return match
+    return None
+
+
 def main():
     os.chdir(PROJECT_ROOT)
     print("\n" + "=" * 65)
@@ -485,9 +525,10 @@ def main():
     print(f"  Active Cases Directory: {CASES_DIR}")
     print("=" * 65 + "\n")
 
-    # Auto-open in browser on macOS
     if sys.platform == "darwin":
         subprocess.Popen(["open", f"http://localhost:{PORT}"])
+    else:
+        webbrowser.open(f"http://localhost:{PORT}")
 
     with socketserver.TCPServer(("", PORT), DashboardHandler) as httpd:
         try:

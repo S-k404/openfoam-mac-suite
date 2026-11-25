@@ -23,16 +23,16 @@
 
 | Characteristic | Detail |
 | --- | --- |
-| **Engine** | OpenCFD OpenFOAM v2512 (`opencfd/openfoam-default:latest`) on macOS (`arm64` and `x86_64`) via Docker (`--shm-size=4g --ipc=host`) |
-| **CLI tools** | `openfoam` (`./openfoam.sh`), `foam-aero`, `foam-live` (`http://localhost:8080`), `foam-test`, `paraFoam`, `pvpython`, `pvbatch` |
-| **Visualization** | Native macOS `ParaView*.app` (Metal GPU accelerated) plus a live browser dashboard for residuals and aerodynamic forces |
+| **Engine** | OpenCFD OpenFOAM v2512 (`opencfd/openfoam-default:latest`) on macOS (`arm64` / `x86_64`) and Windows 11 (`x86_64` via Docker Desktop WSL2) (`--shm-size=4g --ipc=host`) |
+| **CLI tools** | `openfoam` (`./openfoam.sh` / `.\openfoam.ps1`), `foam-aero`, `foam-live` (`http://localhost:8080`), `foam-test`, `paraFoam`, `pvpython`, `pvbatch` |
+| **Visualization** | Native `ParaView` (macOS `ParaView*.app` or Windows `ParaView*\bin\paraview.exe`) plus a live browser dashboard for residuals and aerodynamic forces |
 | **Included cases** | `cases/airFoil2D` (`simpleFoam`), `cases/damBreak` (`interFoam`), `cases/pitzDaily` (`pimpleFoam`), `cases/cavity` (`icoFoam`) |
 | **Verification** | `./bin/foam-test` runs a 7-stage check covering Docker, `blockMesh`, laminar, VOF, RANS airfoil, 8-core MPI scaling and headless `pvpython` |
 <!-- /datasheet:figure -->
 
 ## Quick start
 
-All tools live in [`bin/`](bin) and can be added to `PATH` with [`install_mac.sh`](install_mac.sh):
+macOS tools live in [`bin/`](bin) and can be added to `PATH` with [`install_mac.sh`](install_mac.sh). On **Windows 11**, run `.\install_win.ps1` and use `.\openfoam.ps1` (Docker Desktop + native Windows ParaView):
 
 | Command | Purpose |
 | :--- | :--- |
