@@ -32,16 +32,38 @@
 
 ## Quick start
 
-macOS tools live in [`bin/`](bin) and can be added to `PATH` with [`install_mac.sh`](install_mac.sh). On **Windows 11**, run `.\install_win.ps1` and use `.\openfoam.ps1` (Docker Desktop + native Windows ParaView):
+**macOS:**
+
+Install CLI tools to `PATH` with [`install_mac.sh`](install_mac.sh):
+
+```bash
+./install_mac.sh
+openfoam                                 # opens an interactive OpenFOAM shell
+```
+
+**Windows 11 (PowerShell):**
+
+Run `.\install_win.ps1` to install `openfoam.cmd`, `paraFoam.cmd`, and `foam-live.cmd` into `~/.local/bin` (and add it to your user PATH):
+
+```powershell
+.\install_win.ps1
+
+# Or run directly via PowerShell:
+.\openfoam.ps1 shell                     # interactive OpenFOAM container shell
+.\openfoam.ps1 run cases/airFoil2D       # run solver inside container
+.\openfoam.ps1 paraFoam cases/airFoil2D  # open case in native Windows ParaView
+.\openfoam.ps1 live                      # launch live web convergence monitor (:8080)
+.\openfoam.ps1 test                      # run 7-stage test suite
+```
 
 | Command | Purpose |
 | :--- | :--- |
-| `openfoam` (or `./openfoam.sh`) | Open an interactive OpenFOAM shell or run any solver/utility in the container |
-| `paraFoam [case]` | Create the `.foam` stub and open the case in native macOS ParaView |
+| `openfoam` (or `./openfoam.sh` / `.\openfoam.ps1`) | Open an interactive OpenFOAM shell or run any solver/utility in the container |
+| `paraFoam [case]` | Create the `.foam` stub and open the case in native ParaView (macOS or Windows) |
 | `foam-live [case]` | Launch the real-time web convergence dashboard (`http://localhost:8080`) |
 | `foam-aero <cmd>` | Aerodynamics toolkit (`set-aoa`, `forces`, `polar`, `render`) |
 | `foam-test` | Run the automated 7-step fluid simulation test suite |
-| `pvpython <script.py>` | Run macOS ParaView Python scripts for headless rendering and animations |
+| `pvpython <script.py>` | Run ParaView Python scripts for headless rendering and animations |
 
 ## Aerodynamic workflows
 
@@ -109,9 +131,9 @@ Open **`http://localhost:8080`** in your browser:
 - **Live residuals graph:** logarithmic convergence plot for $p, U_x, U_y, \tilde{\nu}, k, \omega$.
 - **Live aerodynamic forces:** real-time lift ($C_l$) and drag ($C_d$) history.
 - **Live flow visualizer:** rendered flow field slices.
-- **One-click ParaView:** launch native macOS ParaView from the dashboard.
+- **One-click ParaView:** launch native ParaView (macOS or Windows) from the dashboard.
 
-### Hardware-accelerated macOS ParaView (`paraFoam`)
+### Hardware-accelerated ParaView (`paraFoam`)
 ```bash
 paraFoam cases/airFoil2D
 ```
@@ -158,8 +180,8 @@ openfoam ./Allrun
 
 ## Errata
 
-- **Docker Desktop required:** OpenFOAM solvers run inside the Linux container (`opencfd/openfoam-default:latest`); `openfoam.sh` attempts to auto-start Docker Desktop on macOS and waits up to 30 seconds.
-- **ParaView discovery:** `paraFoam`, `pvpython`, and `pvbatch` search `PARAVIEW_APP`, `/opt/homebrew/bin/paraview`, `/Applications/ParaView.app`, and `/Applications/ParaView*.app` (highest installed version first). Headless rendering (`foam-aero render` and test step 7) requires ParaView to be installed under `/Applications`.
+- **Docker Desktop required:** OpenFOAM solvers run inside the Linux container (`opencfd/openfoam-default:latest`); `openfoam.sh` and `openfoam.ps1` attempt to auto-start Docker Desktop (on macOS or Windows) and wait up to 30 seconds.
+- **ParaView discovery:** On macOS, `paraFoam`, `pvpython`, and `pvbatch` search `PARAVIEW_APP`, `/opt/homebrew/bin/paraview`, `/Applications/ParaView.app`, and `/Applications/ParaView*.app`. On Windows 11, `openfoam.ps1` auto-detects `paraview.exe` from `PATH`, `Program Files`, and `LOCALAPPDATA`. Headless rendering (`foam-aero render` and test step 7) requires ParaView to be installed.
 
 ## License
 
